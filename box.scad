@@ -18,38 +18,16 @@ screw_hole_dia = 3.2;
 screw_nut_depth = 6;
 screw_nut_size = [5, 5, 2];
 
-// X,Y centred on origin.
-module bevel(amount, size)
-{
-	module side(x, y)
-	{
-		translate([-x / 2, y / 2 - amount, 0])
-		rotate(-45, [1, 0, 0])
-		cube([x, amount * 2, amount * 2]);
-
-		translate([-x / 2 + amount, y / 2 - amount, 0])
-		rotate(45, [0, 0, 1])
-		rotate(-atan(sqrt(2) / 2), [1, 0, 0])
-		translate([-amount * 2, 0, 0])
-		cube(amount * 4);
-
-		translate([-x / 2, y / 2 - amount, 0])
-		rotate(45, [0, 0, 1])
-		cube([amount * 2, amount * 2, size.z]);
-
-	}
-	
-	for (a = [0, 180])
-	{
-		rotate(a, [0, 0, 1]) side(size.x, size.y);
-		rotate(a + 90, [0, 0, 1]) side(size.y, size.x);
-	}
-}
-
 module box(height)
 {
-	translate(box_offset) 
-	cube([size.x, size.y, height]);
+	b = box_bevel;
+
+	translate(box_offset + [b, b, b]) 
+	minkowski()
+	{
+		translate([0, 0, -b]) cylinder(r1 = 0, r2 = b, h = b, $fn = 4);
+		cube([size.x - b * 2, size.y - b * 2, height - b]);
+	}
 }
 
 module pegs()
@@ -122,8 +100,6 @@ module base()
 		}
 
 		screw_holes(height);
-
-		translate([0, size.y / 2, 0]) bevel(box_bevel, size);
 	}
 }
 
@@ -133,11 +109,9 @@ module lid()
 	{
 		union()
 		{
-			box(box_bevel);
+			box(box_bevel * 2);
 			translate([0, 0, box_bevel]) pegs();
 		}
-		
-		translate([0, size.y / 2, 0]) bevel(box_bevel, size);
 	}
 }
 
