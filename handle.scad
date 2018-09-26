@@ -104,6 +104,28 @@ module base()
 	}
 }
 
+module top()
+{
+	module screw()
+	{
+		screw_depth = 5.5;
+		screw_cap_dia = 6.3;
+		
+		rotate(-90, [1, 0, 0])
+		{
+			cylinder(d = screw_dia, h = handle_dia / 2);
+			translate([0, 0, screw_depth]) cylinder(d = screw_cap_dia, h = handle_dia / 2 - screw_depth);
+		}
+	}
+
+	difference()
+	{
+		common();
+		translate([0, 0, screw_1]) screw();
+		translate([0, 0, screw_2]) screw();
+	}
+}
+
 module panel()
 {
 	difference()
@@ -115,6 +137,9 @@ module panel()
 
 rotate(90, [1, 0, 0]) 
 base();
+
+//rotate(90, [1, 0, 0]) translate([40, 0, 0]) 
+//top();
 
 //translate([30, 0, 0]) 
 //panel();
