@@ -1,4 +1,4 @@
-$fn=16;
+$fs=0.5;
 size = [120, 50, 30];
 wall_size = [3, 3, 3];
 bar_size = [1000, 5.8, 16];
@@ -17,6 +17,21 @@ screw_length = 10;
 screw_hole_dia = 3.2;
 screw_nut_depth = 6;
 screw_nut_size = [5, 5, 2];
+
+tripod_hole_dia = 8;
+tripod_base = 1;
+tripod_top_remove = 4;
+tripod_extra_y = 2;
+tripod_block_size = [12, 12, 5];
+
+use <threads.scad>
+
+module centred_cube(size, centred = [1, 1, 0])
+{
+	c = centred;
+	translate([c.x ? -size.x : 0, c.y ? -size.y : 0, c.z ? -size.z : 0] / 2)
+	cube(size);
+}
 
 module box(height)
 {
@@ -72,6 +87,41 @@ module screw_holes(height)
 	}
 }
 
+module tripod_hole()
+{
+	s = tripod_block_size;
+	translate([0, bar_size.y + wall_size.y + s.y / 2, 0]) 
+	{
+		cylinder(d = tripod_hole_dia, h = wall_size.z);
+		
+		translate([0, -s.y / 2, tripod_base])
+		centred_cube(s + [0, tripod_extra_y, 0], [1, 0, 0]);
+
+		translate([0, s.y / 2 + tripod_extra_y, tripod_base])
+		rotate(20, [1, 0, 0])
+		centred_cube([s.x, wall_size.z * 2, wall_size.z], [1, 0, 0]);
+	}
+}
+
+module tripod_top()
+{
+	t = 2;
+	s = tripod_block_size;
+	translate([0, bar_size.y + wall_size.y, tripod_base]) 
+	centred_cube(s + [t * 2, -tripod_top_remove, t], [1, 0, 0]);
+}
+
+module tripod_block()
+{
+	s = tripod_block_size;
+	
+	difference()
+	{
+		centred_cube(s * 0.97);
+		english_thread(diameter = 1/4, threads_per_inch = 20, length = s.z / 25.4, internal = true);
+	}
+}
+
 module base()
 {
 	height = size.z - box_bevel;
@@ -97,9 +147,13 @@ module base()
 			translate([0, 0, height - bar_size.z]) pegs();
 			
 			screw_posts(height);
+			
+			tripod_top();
 		}
 
 		screw_holes(height);
+
+		tripod_hole();
 	}
 }
 
@@ -130,6 +184,19 @@ module test()
 	translate([5, peg_offset.y, height - bar_size.z / 2]) cylinder(d = peg_dia, h = peg_height);
 }
 
+module tripod_test()
+{
+	intersection()
+	{
+		base();
+
+		translate([0, bar_size.y, 0]) 
+		centred_cube(tripod_block_size + [5, 12, 3], [1, 0, 0]);
+	}
+}
+
 base();
 //lid();
 //test();
+//tripod_block();
+//translate([20, 0, 0]) tripod_test();
