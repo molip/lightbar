@@ -1,6 +1,6 @@
 $fs=0.5;
-size = [120, 50, 30];
-wall_size = [3, 3, 3];
+size = [130, 55, 30];
+wall_size = [2, 2, 2];
 bar_size = [1000, 5.8, 16];
 cable_slot_x = 70;
 box_offset = [-size.x / 2, 0, 0];
@@ -23,6 +23,13 @@ tripod_base = 1;
 tripod_top_remove = 4;
 tripod_extra_y = 2;
 tripod_block_size = [12, 12, 5];
+
+panel_length_back = 95;
+panel_length_side = 12;
+panel_height = 20;
+panel_border = 2;
+panel_wall = 2;
+panel_thickness = 3;
 
 use <threads.scad>
 
@@ -122,10 +129,35 @@ module tripod_block()
 	}
 }
 
+module panel_block(width, hole)
+{
+	slot_size = [width + panel_border * 2, panel_thickness, panel_height + panel_border];
+	block_size = [slot_size.x + panel_wall * 2, panel_thickness + panel_wall, size.z - wall_size.z];
+	hole_size = [width, block_size.y + panel_wall + 2, panel_height];
+
+	if (hole)
+	{
+		translate([0, -1, size.z - hole_size.z]) centred_cube(hole_size, [1, 0, 0]);
+		translate([0, panel_wall, size.z - slot_size.z]) centred_cube(slot_size, [1, 0, 0]);
+	}
+	else
+	{
+		translate([0, panel_wall, size.z - block_size.z])
+		centred_cube(block_size, [1, 0, 0]);
+	}
+}
+
+module panel_blocks(hole)
+{
+	translate([0, size.y, 0]) rotate(180, [0, 0, 1]) panel_block(panel_length_back, hole);
+	translate([size.x / 2, inner_centre_y, 0]) rotate(90, [0, 0, 1]) panel_block(panel_length_side, hole);
+	translate([-size.x / 2, inner_centre_y, 0]) rotate(-90, [0, 0, 1]) panel_block(panel_length_side, hole);
+}
+
 module base()
 {
-	height = size.z - box_bevel;
-
+	height = size.z;
+	
 	difference()
 	{
 		union()
@@ -135,7 +167,7 @@ module base()
 				box(height);
 				
 				// Main cavity.
-				translate(box_offset + wall_size + [0, bar_size.y, 0]) cube(size - wall_size * 2 - [0, bar_size.y, 0]);
+				translate(box_offset + wall_size + [0, bar_size.y, 0]) cube(size - wall_size * 2 - [0, bar_size.y, -10]);
 
 				// Lightbar recess.
 				translate([-bar_size.x / 2, 0, height - bar_size.z]) cube(bar_size);
@@ -149,11 +181,15 @@ module base()
 			screw_posts(height);
 			
 			tripod_top();
+
+			panel_blocks(false);
 		}
 
 		screw_holes(height);
 
 		tripod_hole();
+
+		panel_blocks(true);
 	}
 }
 
