@@ -126,8 +126,10 @@ module tripod_block()
 	
 	difference()
 	{
-		centred_cube(s * 0.97);
-		english_thread(diameter = 1/4, threads_per_inch = 20, length = s.z / 25.4, internal = true);
+		mm_per_in = 25.4;
+		dia = 1/4 + 0.2 / mm_per_in; 
+		centred_cube(s * 0.95);
+		english_thread(diameter = dia, threads_per_inch = 20, length = s.z / mm_per_in, internal = true);
 	}
 }
 
