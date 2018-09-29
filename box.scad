@@ -175,7 +175,7 @@ module base()
 				translate([-bar_size.x / 2, 0, height - bar_size.z]) cube(bar_size);
 				
 				// Lightbar cable slot.
-				translate([-cable_slot_x / 2, 0, height - bar_size.z]) cube([cable_slot_x, bar_size.y, bar_size.z]);
+				translate([-cable_slot_x / 2, 0, height - bar_size.z]) cube([cable_slot_x, bar_size.y + wall_size.y, bar_size.z]);
 			}
 			
 			translate([0, 0, height - bar_size.z]) pegs(peg_spacing_bottom);
