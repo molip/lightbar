@@ -12,8 +12,8 @@ peg_spacing_bottom = 100;
 peg_dia = 2.8;
 peg_height = 2;
 
-screw_offset = [2.5, 2.5]; // From corner.
-screw_post_width = 9;
+screw_offset = [5, 5]; // From corner.
+screw_post_width = 14;
 screw_length = 9;
 screw_hole_dia = 3.2;
 screw_nut_depth = 5;
@@ -60,7 +60,7 @@ module pegs(spacing)
 		translate([x, bar_size.y / 2]) cylinder(d = peg_dia, h = peg_height);
 }
 
-module do_all_corners()
+module do_all_corners(bottom)
 {
 	module corner()
 	{
@@ -68,7 +68,7 @@ module do_all_corners()
 		children();
 	}
 	
-	translate([0, inner_centre_y, wall_size.z])
+	translate([0, inner_centre_y, bottom])
 	{
 		corner() children();
 		mirror([0, 1, 0]) corner() children();
@@ -80,12 +80,12 @@ module do_all_corners()
 module screw_posts(height)
 {
 	points = [[-screw_post_width, 0], [0, 0], [0, 0 - screw_post_width]]; 
-	do_all_corners() linear_extrude(height - wall_size.z) polygon(points);
+	do_all_corners(wall_size.z) linear_extrude(height - wall_size.z) polygon(points);
 }
 
 module screw_holes(height)
 {
-	do_all_corners() 
+	do_all_corners(wall_size.z) 
 	translate([-screw_offset.x, -screw_offset.y, height - screw_length]) 
 	{
 		cylinder(d = screw_hole_dia, h = screw_length + 1);
@@ -131,29 +131,29 @@ module tripod_block()
 	}
 }
 
-module panel_block(width, hole)
+module panel_block(width, top, height, hole)
 {
-	slot_size = [width + panel_border * 2, panel_thickness, panel_height + panel_border];
-	block_size = [slot_size.x + panel_wall * 2, panel_thickness + panel_wall, size.z - wall_size.z];
-	hole_size = [width, block_size.y + panel_wall + 2, panel_height];
+	slot_size = [width + panel_border * 2, panel_thickness, height + panel_border];
+	block_size = [slot_size.x + panel_wall * 2, panel_thickness + panel_wall, top - wall_size.z];
+	hole_size = [width, block_size.y + panel_wall + 2, height];
 
 	if (hole)
 	{
-		translate([0, -1, size.z - hole_size.z]) centred_cube(hole_size, [1, 0, 0]);
-		translate([0, panel_wall, size.z - slot_size.z]) centred_cube(slot_size, [1, 0, 0]);
+		translate([0, -1, top - hole_size.z]) centred_cube(hole_size, [1, 0, 0]);
+		translate([0, panel_wall, top - slot_size.z]) centred_cube(slot_size, [1, 0, 0]);
 	}
 	else
 	{
-		translate([0, panel_wall, size.z - block_size.z])
+		translate([0, panel_wall, top - block_size.z])
 		centred_cube(block_size, [1, 0, 0]);
 	}
 }
 
-module panel_blocks(hole)
+module panel_blocks(hole, top, height)
 {
-	translate([0, size.y, 0]) rotate(180, [0, 0, 1]) panel_block(panel_length_back, hole);
-	translate([size.x / 2, inner_centre_y, 0]) rotate(90, [0, 0, 1]) panel_block(panel_length_side, hole);
-	translate([-size.x / 2, inner_centre_y, 0]) rotate(-90, [0, 0, 1]) panel_block(panel_length_side, hole);
+	translate([0, size.y, 0]) rotate(180, [0, 0, 1]) panel_block(panel_length_back, top, height, hole);
+	translate([size.x / 2, inner_centre_y, 0]) rotate(90, [0, 0, 1]) panel_block(panel_length_side, top, height, hole);
+	translate([-size.x / 2, inner_centre_y, 0]) rotate(-90, [0, 0, 1]) panel_block(panel_length_side, top, height, hole);
 }
 
 module base()
@@ -184,25 +184,36 @@ module base()
 			
 			tripod_top();
 
-			panel_blocks(false);
+			panel_blocks(false, height, panel_height);
 		}
 
 		screw_holes(height);
 
 		tripod_hole();
 
-		panel_blocks(true);
+		panel_blocks(true, height, panel_height);
 	}
 }
 
 module lid()
 {
+	height = box_bevel + 2;
+
 	difference()
 	{
 		union()
 		{
-			box(box_bevel * 2);
-			translate([0, 0, box_bevel]) pegs(peg_spacing_bottom);
+			box(height);
+			translate([0, 0, height]) pegs(peg_spacing_top);
+		}
+		
+		panel_blocks(true, height, 0);
+		
+		do_all_corners(0) 
+		translate([-screw_offset.x, -screw_offset.y, 0]) 
+		{
+			cylinder(d = screw_hole_dia, h = height);
+			cylinder(d = 6, h = 2);
 		}
 	}
 }
