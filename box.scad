@@ -1,5 +1,5 @@
 $fs=0.5;
-size = [130, 55, 30];
+size = [140, 58, 35];
 wall_size = [2, 2, 2];
 bar_size = [1000, 5.8, 16];
 cable_slot_x = 70;
@@ -7,7 +7,8 @@ box_offset = [-size.x / 2, 0, 0];
 box_bevel = 3;
 inner_centre_y = bar_size.y + (size.y - bar_size.y) / 2;
 
-peg_offset = [55, bar_size.y / 2]; // From front of box.
+peg_spacing_top = 80;
+peg_spacing_bottom = 100;
 peg_dia = 2.8;
 peg_height = 2;
 
@@ -24,12 +25,12 @@ tripod_top_remove = 4;
 tripod_extra_y = 2;
 tripod_block_size = [12, 12, 5];
 
-panel_length_back = 95;
-panel_length_side = 12;
+panel_length_back = 110;
+panel_length_side = 20;
 panel_height = 20;
 panel_border = 2;
 panel_wall = 2;
-panel_thickness = 3;
+panel_thickness = 2;
 
 use <threads.scad>
 
@@ -52,10 +53,10 @@ module box(height)
 	}
 }
 
-module pegs()
+module pegs(spacing)
 {
-	for (x = [-peg_offset.x, peg_offset.x])
-		translate([x, peg_offset.y]) cylinder(d = peg_dia, h = peg_height);
+	for (x = [-spacing / 2, spacing / 2])
+		translate([x, bar_size.y / 2]) cylinder(d = peg_dia, h = peg_height);
 }
 
 module do_all_corners()
@@ -176,7 +177,7 @@ module base()
 				translate([-cable_slot_x / 2, 0, height - bar_size.z]) cube([cable_slot_x, bar_size.y, bar_size.z]);
 			}
 			
-			translate([0, 0, height - bar_size.z]) pegs();
+			translate([0, 0, height - bar_size.z]) pegs(peg_spacing_bottom);
 			
 			screw_posts(height);
 			
@@ -200,7 +201,7 @@ module lid()
 		union()
 		{
 			box(box_bevel * 2);
-			translate([0, 0, box_bevel]) pegs();
+			translate([0, 0, box_bevel]) pegs(peg_spacing_bottom);
 		}
 	}
 }
