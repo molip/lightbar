@@ -24,6 +24,7 @@ tripod_base = 1;
 tripod_top_remove = 4;
 tripod_extra_y = 2;
 tripod_block_size = [12, 12, 5];
+tripod_hole_y = size.y / 2;
 
 panel_length_back = 110;
 panel_length_side = 20;
@@ -98,7 +99,7 @@ module screw_holes(height)
 module tripod_hole()
 {
 	s = tripod_block_size;
-	translate([0, bar_size.y + wall_size.y + s.y / 2, 0]) 
+	translate([0, tripod_hole_y, 0]) 
 	{
 		cylinder(d = tripod_hole_dia, h = wall_size.z);
 		
@@ -115,8 +116,8 @@ module tripod_top()
 {
 	t = 2;
 	s = tripod_block_size;
-	translate([0, bar_size.y + wall_size.y, tripod_base]) 
-	centred_cube(s + [t * 2, -tripod_top_remove, t], [1, 0, 0]);
+	translate([0, tripod_hole_y - s.y / 2, tripod_base]) 
+	centred_cube(s + [t * 4, -tripod_top_remove, t], [1, 0, 0]);
 }
 
 module tripod_block()
