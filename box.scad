@@ -11,12 +11,12 @@ peg_offset = [55, bar_size.y / 2]; // From front of box.
 peg_dia = 2.8;
 peg_height = 2;
 
-screw_offset = [5, 5]; // From corner.
-screw_post_width = 8;
-screw_length = 10;
+screw_offset = [2.5, 2.5]; // From corner.
+screw_post_width = 9;
+screw_length = 9;
 screw_hole_dia = 3.2;
-screw_nut_depth = 6;
-screw_nut_size = [5, 5, 2];
+screw_nut_depth = 5;
+screw_nut_size = [5.5, 6.3, 2.8];
 
 tripod_hole_dia = 8;
 tripod_base = 1;
@@ -84,7 +84,7 @@ module screw_posts(height)
 module screw_holes(height)
 {
 	do_all_corners() 
-	translate([-screw_hole_dia / 2, -screw_hole_dia / 2, height - screw_length]) 
+	translate([-screw_offset.x, -screw_offset.y, height - screw_length]) 
 	{
 		cylinder(d = screw_hole_dia, h = screw_length + 1);
 		
