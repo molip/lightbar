@@ -220,6 +220,22 @@ module lid()
 	}
 }
 
+module spare_peg()
+{
+	cylinder(d = peg_dia, h = peg_height + 2);
+}
+
+module side_panel()
+{
+	difference()
+	{
+		border = [panel_border, panel_border, 0];
+		shrink = [0.15, 0.15, 0.15];
+		centred_cube([panel_length_side, panel_height, panel_thickness] + border * 2 - shrink);
+		cylinder(d = 6.2, h = panel_thickness);
+	}
+}
+
 module test()
 {
 	height = 12;
@@ -251,3 +267,5 @@ base();
 //test();
 //tripod_block();
 //translate([20, 0, 0]) tripod_test();
+//spare_peg();
+//side_panel();
