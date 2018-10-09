@@ -34,13 +34,8 @@ panel_wall = 2;
 panel_thickness = 2;
 
 use <threads.scad>
-
-module centred_cube(size, centred = [1, 1, 0])
-{
-	c = centred;
-	translate([c.x ? -size.x : 0, c.y ? -size.y : 0, c.z ? -size.z : 0] / 2)
-	cube(size);
-}
+use <util.scad>
+use <controls.scad>
 
 module box(height)
 {
@@ -225,14 +220,46 @@ module spare_peg()
 	cylinder(d = peg_dia, h = peg_height + 2);
 }
 
-module side_panel()
+module side_panel(remote)
 {
 	difference()
 	{
 		border = [panel_border, panel_border, 0];
-		shrink = [0.15, 0.15, 0.15];
+		shrink = [0.2, 0.2, 0.25];
 		centred_cube([panel_length_side, panel_height, panel_thickness] + border * 2 - shrink);
-		cylinder(d = 6.2, h = panel_thickness);
+		x = remote ? 4.5 : -4.5;
+		translate([x, -4.5, 0]) cylinder(d = 6.2, h = panel_thickness);
+		if (remote)
+			translate([-4.5, 4.5, 0]) cylinder(d = 6, h = panel_thickness);
+	}
+}
+
+module back_panel()
+{
+	module controls(hole)
+	{
+		icons = [["wide.svg", "narrow.svg", "colour.svg", "mode.svg"]];
+		translate([27, 3, 0]) control_tactile(4, 1, hole, icons);
+		translate([62, 0, 0]) control_pot(hole);
+		translate([82, 0, 0]) control_toggle_button(hole);
+		translate([102, 0, 0]) control_power_socket(hole);
+	}
+
+	border = [panel_border, panel_border, 0];
+	shrink = [0.2, 0.2, 0.2];
+	size = [panel_length_back, panel_height, panel_thickness] + border * 2 - shrink;
+
+	difference()
+	{
+		$thickness = size.z;
+
+		union()
+		{
+			translate([0, -size.y / 2, 0]) cube(size);
+			controls(false);
+		}
+		
+		controls(true);
 	}
 }
 
@@ -268,4 +295,6 @@ base();
 //tripod_block();
 //translate([20, 0, 0]) tripod_test();
 //spare_peg();
-//side_panel();
+//translate([20, -30, 0]) side_panel(false);
+//translate([50, -30, 0]) side_panel(true);
+//back_panel();
