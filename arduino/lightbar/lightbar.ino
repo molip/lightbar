@@ -63,38 +63,44 @@ const uint32_t Colours[] =
 
 const int PixelCount = 60;
 const int ColourCount = sizeof Colours / sizeof Colours[0];
-int currentColour = 0;
-int currentPixel = -1;
-uint32_t nextPixelTime = 0;
-uint32_t pixelDuration = 40000;
 
-Adafruit_NeoPixel pixels = Adafruit_NeoPixel(PixelCount, Output::Lights, NEO_GRB + NEO_KHZ800);
-Button colourButton(Input::Colour);
-Button modeButton(Input::Mode);
+struct _settings
+{
+	int currentColour = 0;
+	uint32_t pixelDuration = 40000;
+} 
+_settings;
+
+int _currentIndex = -1;
+uint32_t _nextPixelTime = 0;
+
+Adafruit_NeoPixel _pixels = Adafruit_NeoPixel(PixelCount, Output::Lights, NEO_GRB + NEO_KHZ800);
+Button _colourButton(Input::Colour);
+Button _modeButton(Input::Mode);
 
 void setup() 
 {
-	pixels.begin();
-	pixels.setBrightness(0);
-	pixels.show();
+	_pixels.begin();
+	_pixels.setBrightness(0);
+	_pixels.show();
 
 	pinMode(Input::Colour, INPUT_PULLUP);
 	pinMode(Input::Mode, INPUT_PULLUP);
 }
 
-int getPixelIndex()
+int getPixel()
 {
-	return (PixelCount - 1) - abs(currentPixel - (PixelCount - 1));
+	return (PixelCount - 1) - abs(_currentIndex - (PixelCount - 1));
 }
 
 void loop() 
 {
 	uint32_t now = micros();
 
-	if (colourButton.Update(now))
-		currentColour = (currentColour + 1) % ColourCount;
+	if (__modeButton.Update(now))
+		_settings.currentColour = (_settings.currentColour + 1) % ColourCount;
 	
-	if (modeButton.Update(now))
+	if (_modeButton.Update(now))
 	{
 	}
 
@@ -102,28 +108,28 @@ void loop()
 	uint64_t brightnessVal = analogRead(Input::Brightness);
 
 	int brightness = map((brightnessVal * brightnessVal) >> 10, 0, 1023, 3, 255);
-	pixelDuration = map(durationVal, 0, 1023, 50000, 5000);
+	_settings.pixelDuration = map(durationVal, 0, 1023, 50000, 5000);
 	
-	const uint32_t colour = Colours[currentColour];
+	const uint32_t colour = Colours[_settings.currentColour];
 
-	if (now > nextPixelTime)
+	if (now > _nextPixelTime)
 	{
-		nextPixelTime = now + pixelDuration;
+		_nextPixelTime = now + _settings.pixelDuration;
 		
-		if (currentPixel < 0)
+		if (_currentIndex < 0)
 		{
-			currentPixel = 0;
+			_currentIndex = 0;
 		}
 		else
 		{
-			pixels.setPixelColor(getPixelIndex(), pixels.Color(0,0,0));
-			pixels.setBrightness(brightness);
-			currentPixel = (currentPixel + 1) % (PixelCount * 2 - 2);
+			_pixels.setPixelColor(getPixel(), _pixels.Color(0,0,0));
+			_pixels.setBrightness(brightness);
+			_currentIndex = (_currentIndex + 1) % (PixelCount * 2 - 2);
 		}
 		
 	
+		_pixels.setPixelColor(getPixelIndex(), colour);
+		_pixels.show();
 	
-		pixels.setPixelColor(getPixelIndex(), colour);
-		pixels.show();
 	}
 }
