@@ -6,6 +6,7 @@ cable_slot_x = 70;
 box_offset = [-size.x / 2, 0, 0];
 box_bevel = 3;
 inner_centre_y = bar_size.y + (size.y - bar_size.y) / 2;
+lid_height = box_bevel + 2;
 
 peg_spacing_top = 80;
 peg_spacing_bottom = 100;
@@ -33,19 +34,22 @@ panel_border = 2;
 panel_wall = 2;
 panel_thickness = 2;
 
+remote_size = [30, 50, 13];
+remote_insert_z = 5;
+
 use <threads.scad>
 use <util.scad>
 use <controls.scad>
 
-module box(height)
+module box(size)
 {
 	b = box_bevel;
 
-	translate(box_offset + [b, b, b]) 
+	translate([b, b, b]) 
 	minkowski()
 	{
 		translate([0, 0, -b]) cylinder(r1 = 0, r2 = b, h = b, $fn = 4);
-		cube([size.x - b * 2, size.y - b * 2, height - b]);
+		cube(size - [b * 2, b * 2, b]);
 	}
 }
 
@@ -163,7 +167,7 @@ module base()
 		{
 			difference()
 			{
-				box(height);
+				translate(box_offset) box(size);
 				
 				// Main cavity.
 				translate(box_offset + wall_size + [0, bar_size.y, 0]) cube(size - wall_size * 2 - [0, bar_size.y, -10]);
@@ -194,13 +198,13 @@ module base()
 
 module lid()
 {
-	height = box_bevel + 2;
+	height = lid_height;
 
 	difference()
 	{
 		union()
 		{
-			box(height);
+			translate(box_offset) box([size.x, size.y, height]);
 			translate([0, 0, height]) pegs(peg_spacing_top);
 		}
 		
@@ -212,6 +216,90 @@ module lid()
 			cylinder(d = screw_hole_dia, h = height);
 			cylinder(d = 6, h = 2);
 		}
+	}
+}
+
+module remote_base()
+{
+	size = remote_size;
+	inner = size - wall_size * 2 + [0, 0, wall_size.z];
+
+	module controls(hole)
+	{
+		translate([0, 0, (size.z + lid_height) / 2]) rotate(-90, [1, 0, 0]) control_jack_socket(hole);
+	}
+	
+	offset = [-size.x / 2, 0, 0];
+	
+	$thickness = wall_size.z;
+
+	difference()
+	{
+		union()
+		{
+			difference()
+			{
+				translate(offset) box(size);
+				
+				translate([0, size.y / 2, wall_size.z]) 
+				hull()
+				{
+					rad = 2;
+					d = size / 2 - wall_size - [rad, rad, 0];
+					for (x = [-d.x, d.x])
+						for (y = [-d.y, d.y])
+							translate([x, y, 0]) cylinder(r = rad, h = size.z - remote_insert_z);
+				}
+				
+				d = 0.1;
+				translate(offset + wall_size + [-d, -d, size.z - remote_insert_z]) cube(inner + [d * 2, d * 2, 0]);
+			}		
+			
+			controls(false);
+		}
+	
+		controls(true);
+	}
+}
+
+module remote_lid()
+{
+	size = [remote_size.x, remote_size.y, lid_height];
+	inner = size - wall_size * 2 + [0, 0, wall_size.z];
+
+	module controls(hole)
+	{
+		translate([0, 18, 0]) control_tactile(1, 1, hole);
+		translate([0, 33, 0]) control_pot(hole);
+		
+		translate([0, 0, 10]) rotate(-90, [1, 0, 0]) control_jack_socket(hole);
+	}
+	
+	offset = [-size.x / 2, 0, 0];
+	
+	$thickness = wall_size.z;
+
+	difference()
+	{
+		union()
+		{
+			difference()
+			{
+				translate(offset) box(size);
+				translate(offset + wall_size) cube(inner + [0, 0, 1]);
+			}		
+			
+			controls(false);
+
+			difference()
+			{
+				translate(offset + wall_size) cube([inner.x,inner.y, remote_insert_z]);
+				translate(offset + wall_size + [1, 1, 0]) cube([inner.x - 2, inner.y - 2, remote_insert_z]);
+			}		
+		}
+	
+		controls(true);
+		translate([0, 0, size.z]) centred_cube_x([12, wall_size.y + 1, 10]); // Socket gap.
 	}
 }
 
@@ -315,6 +403,8 @@ module tripod_test()
 
 base();
 //lid();
+//remote_base();
+//translate([0, 0, remote_size.z + lid_height]) rotate(180, [0, 1, 0]) remote_lid();
 //test();
 //tripod_block();
 //translate([20, 0, 0]) tripod_test();

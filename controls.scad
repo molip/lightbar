@@ -42,7 +42,7 @@ module control_jack_socket(hole)
 	if (hole)
 		cylinder(d = 6, h = $thickness);
 	else if ($preview)
-		translate([0.5, 0, 0]) centred_cube([10, 9, 10]);
+		translate([0.5, 0, $thickness]) color("blue", 0.5) centred_cube([10, 9, 10]);
 }
 
 // 18mm
@@ -81,6 +81,15 @@ module control_pot(hole)
 	{
 		cylinder(d = dia + rim * 2, h = depth);
 		translate([-offset, 0, 0]) centred_cube([hole_size.x + rim, hole_size.y + rim, depth]);
+
+		if ($preview)
+		{
+			translate([0, 0, $thickness + extra]) color("blue", 0.5) 
+			{
+				cylinder(d = 17, h = 9.5);
+				centred_cube_x([17, 13, 9.5]);
+			}
+		}
 	}
 }
 
