@@ -270,6 +270,23 @@ module back_panel()
 	}
 }
 
+module pcb_block()
+{
+	board = [71, 1.7, 7];
+	base = 2;
+	wall = 3;
+	back = 7;
+	
+	difference()
+	{
+		all = [board.x + wall * 2, back + board.y + wall, base + board.z];
+		centred_cube(all, [1, 0, 0]);
+		translate([0, 0, base + 1]) centred_cube(all - [14, 0, 0], [1, 0, 0]);
+		translate([0, wall, base]) centred_cube(board, [1, 0, 0]);
+		
+	}
+}
+
 module test()
 {
 	height = 12;
@@ -305,3 +322,4 @@ base();
 //translate([20, -30, 0]) side_panel(false);
 //translate([50, -30, 0]) side_panel(true);
 //back_panel();
+//pcb_block();
