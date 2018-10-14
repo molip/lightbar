@@ -238,11 +238,18 @@ module back_panel()
 {
 	module controls(hole)
 	{
-		icons = [["wide.svg", "narrow.svg", "colour.svg", "mode.svg"]];
-		translate([27, 3, 0]) control_tactile(4, 1, hole, icons);
-		translate([62, 0, 0]) control_pot(hole);
-		translate([82, 0, 0]) control_toggle_button(hole);
-		translate([102, 0, 0]) control_power_socket(hole);
+		translate([7, -4.8, 0]) control_jack_socket(hole);
+
+		translate([43, 0, 0]) 
+		{
+			translate([0, 5, 0]) control_tactile(6, 1, hole);
+
+			if (hole) // Icon trough.
+				translate([0, -4, 0]) centred_cube([6 * 4 * 2.54, 8, 1]);
+		}
+		translate([84, 0, 0]) control_toggle_button(hole);
+
+		translate([103, 0, 0]) control_power_socket(hole);
 	}
 
 	border = [panel_border, panel_border, 0];

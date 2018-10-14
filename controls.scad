@@ -25,16 +25,24 @@ module control_power_socket(hole)
 {
 	if (hole)
 	{
-		dia = 12.6 + add;
+		dia = 12.5 + add;
 		flat_width = 11.6 + add;
 
 		linear_extrude(height = $thickness)
 		intersection()
 		{
 			circle(d=dia);
-			square([flat_width, dia], center = true);
+			square([dia, flat_width], center = true);
 		}
 	}
+}
+
+module control_jack_socket(hole)
+{
+	if (hole)
+		cylinder(d = 6, h = $thickness);
+	else if ($preview)
+		translate([0.5, 0, 0]) centred_cube([10, 9, 10]);
 }
 
 // 18mm
@@ -76,7 +84,7 @@ module control_pot(hole)
 	}
 }
 
-module control_tactile(nx, ny, hole, icons)
+module control_tactile(nx, ny, hole)
 {
 	height = 12;
 	protrude = 1;
@@ -85,18 +93,30 @@ module control_tactile(nx, ny, hole, icons)
 	switch_dots = [3, 2];
 	gap_dots = [1, 2];
 
-	hole_dia = 4.7;
+	hole_dia = 4.8;
 
 	depth_min = height - protrude - $thickness - board_thickness;
 	
 	total_switch_dots = [(switch_dots.x + gap_dots.x) * nx, (switch_dots.y + gap_dots.y) * ny] - gap_dots;
 	
-	module posts(dia)
+	module posts(hole)
 	{
+		dia = 2.1;
 		dx = (1 + total_switch_dots.x / 2) * dot_pitch;
 		for (x = [-dx, dx])
-			translate([x, 0, $thickness])
+		{
+			translate([x, 0, $thickness]) 
+			if (hole)
 				cylinder(d = dia, h = depth_min);
+			else					
+			{
+				hull()
+				{
+					cylinder(d = 5.5, h = depth_min);
+					centred_cube([2, 9, depth_min]);
+				}
+			}
+		}
 	}
 	
 	if (hole)
@@ -108,17 +128,14 @@ module control_tactile(nx, ny, hole, icons)
 				translate([x * (switch_dots.x + gap_dots.x), y * (switch_dots.y + gap_dots.y)] * dot_pitch) 
 				{
 					cylinder(d = hole_dia, h = $thickness);
-					translate([0, -hole_dia /2 - 6, 0])
-					mirror([0, 1, 0])
-					linear_extrude(height = 0.5) import(icons[y][x]);
 				}
 			}
 
-		posts(2.1);
+		posts(true);
 	}
 	else
 	{
-		posts(5.5);
+		posts(false);
 	}
 }
 
