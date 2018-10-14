@@ -99,11 +99,11 @@ module tripod_hole()
 		cylinder(d = tripod_hole_dia, h = wall_size.z);
 		
 		translate([0, -s.y / 2, tripod_base])
-		centred_cube(s + [0, tripod_extra_y, 0], [1, 0, 0]);
+		centred_cube_x(s + [0, tripod_extra_y, 0]);
 
 		translate([0, s.y / 2 + tripod_extra_y, tripod_base])
 		rotate(20, [1, 0, 0])
-		centred_cube([s.x, wall_size.z * 2, wall_size.z], [1, 0, 0]);
+		centred_cube_x([s.x, wall_size.z * 2, wall_size.z]);
 	}
 }
 
@@ -112,7 +112,7 @@ module tripod_top()
 	t = 2;
 	s = tripod_block_size;
 	translate([0, tripod_hole_y - s.y / 2, tripod_base]) 
-	centred_cube(s + [t * 4, -tripod_top_remove, t], [1, 0, 0]);
+	centred_cube_x(s + [t * 4, -tripod_top_remove, t]);
 }
 
 module tripod_block()
@@ -136,13 +136,13 @@ module panel_block(width, top, height, hole)
 
 	if (hole)
 	{
-		translate([0, -1, top - hole_size.z]) centred_cube(hole_size, [1, 0, 0]);
-		translate([0, panel_wall, top - slot_size.z]) centred_cube(slot_size, [1, 0, 0]);
+		translate([0, -1, top - hole_size.z]) centred_cube_x(hole_size);
+		translate([0, panel_wall, top - slot_size.z]) centred_cube_x(slot_size);
 	}
 	else
 	{
 		translate([0, panel_wall, top - block_size.z])
-		centred_cube(block_size, [1, 0, 0]);
+		centred_cube_x(block_size);
 	}
 }
 
@@ -280,9 +280,9 @@ module pcb_block()
 	difference()
 	{
 		all = [board.x + wall * 2, back + board.y + wall, base + board.z];
-		centred_cube(all, [1, 0, 0]);
-		translate([0, 0, base + 1]) centred_cube(all - [14, 0, 0], [1, 0, 0]);
-		translate([0, wall, base]) centred_cube(board, [1, 0, 0]);
+		centred_cube_x(all);
+		translate([0, 0, base + 1]) centred_cube_x(all - [14, 0, 0]);
+		translate([0, wall, base]) centred_cube_x(board);
 		
 	}
 }
@@ -309,7 +309,7 @@ module tripod_test()
 		base();
 
 		translate([0, bar_size.y, 0]) 
-		centred_cube(tripod_block_size + [5, 12, 3], [1, 0, 0]);
+		centred_cube_x(tripod_block_size + [5, 12, 3]);
 	}
 }
 
