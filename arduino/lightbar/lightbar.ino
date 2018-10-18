@@ -117,7 +117,8 @@ uint32_t _nextPixelTime = 0;
 uint32_t _buzzerOffTime = 0;
 uint32_t _nextAnalogReadTime = 0;
 bool _paused = false;
-int _pixelDuration = 100;
+int _rawPixelDuration = 100;
+float _durationFactors[PixelCount / 2];
 
 Adafruit_NeoPixel _pixels = Adafruit_NeoPixel(PixelCount, Output::Lights, NEO_GRB + NEO_KHZ800);
 
@@ -150,6 +151,8 @@ void setup()
 
 	digitalWrite(Output::BuzzerL, HIGH);
 	digitalWrite(Output::BuzzerR, HIGH);
+
+	updateDurationFactors();
 }
 
 int getSkipPixels()
@@ -166,6 +169,36 @@ int getPixel()
 {
 	const int runLength = getRunLength();
 	return getSkipPixels() + runLength - abs(_currentIndex - runLength);
+}
+
+int getPixelDuration(int raw)
+{
+	if (_settings.mode == 0)
+		return raw;
+	
+	const int runLength = getRunLength();
+	const int count = (runLength + 1) / 2;
+	int index = _currentIndex % runLength;
+	if (index >= count)
+		index = runLength - index - 1;
+
+	return int(raw * _durationFactors[index]);
+}
+
+void updateDurationFactors()
+{
+	const int count = (getRunLength() + 1) / 2;
+	
+	float last_t = 0;
+	for (int i = 0; i < count; ++i)
+	{
+		const float x = ((count - i - 1) / float(count));
+		const float t = acos(x) * 2 / 3.141; // [0, 1]
+		const float dt = t - last_t;
+
+		_durationFactors[i] = dt * count;
+		last_t = t;
+	}
 }
 
 void loop() 
@@ -185,10 +218,12 @@ void loop()
 	}	
 	else if ((reset = _modeButton.Update(now)))
 	{
+		_settings.mode = _settings.mode ? 0 : 1;
 	}
 	else if ((reset = _rangeButton.Update(now)))
 	{
 		_settings.range = (_settings.range + 1) % RangesCount;
+		updateDurationFactors();
 	}
 	else if ((reset = _buzzerLevelButton.Update(now)))
 	{
@@ -219,7 +254,7 @@ void loop()
 			speed = constrain(val / float(1023 - val), 0, 1);
 		}
 		
-		_pixelDuration = MinPixelDuration + int((1 - speed) * (MaxPixelDuration - MinPixelDuration));
+		_rawPixelDuration = MinPixelDuration + int((1 - speed) * (MaxPixelDuration - MinPixelDuration));
 
 		_nextAnalogReadTime = now + 100;
 	}
@@ -228,7 +263,7 @@ void loop()
 	{
 		const int runLength = getRunLength();
 		
-		_nextPixelTime = now + _pixelDuration;
+		_nextPixelTime = now + getPixelDuration(_rawPixelDuration);
 		
 		if (_currentIndex < 0)
 		{
