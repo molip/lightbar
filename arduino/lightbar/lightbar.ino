@@ -77,17 +77,17 @@ struct BuzzerLevel
 const BuzzerLevel BuzzerLevelsL[] = 
 {
 	{ 0, 0 },
-	{ 80, 150 },
-	{ 140, 135 },
-	{ 180, 120 },
+	{ 70, 140 },
+	{ 110, 140 },
+	{ 150, 140 },
 };
 
 const BuzzerLevel BuzzerLevelsR[] = 
 {
 	{ 0, 0 },
-	{ 55, 140 },
+	{ 50, 140 },
+	{ 80, 130 },
 	{ 100, 120 },
-	{ 145, 90 },
 };
 
 const int Ranges[] = { 0, 5, 10, 15 }; // Pixels to skip at each end.
