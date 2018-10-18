@@ -8,8 +8,6 @@ public:
 
 	bool Update(uint32_t time)
 	{
-		bool state = digitalRead(m_pin) == LOW;
-		
 		if (m_locked)
 		{
 			if (time < m_unlockTime)
@@ -17,6 +15,8 @@ public:
 
 			m_locked = false;
 		}
+
+		bool state = digitalRead(m_pin) == LOW;
 
 		if (state != m_state)
 		{
@@ -34,20 +34,25 @@ private:
 	bool m_state = false;	
 	bool m_locked = false;
 	uint32_t m_unlockTime = 0;
-	const uint32_t LockDuration = 100000;
+	const uint32_t LockDuration = 100;
 };
 
 namespace Output
 {
-	const int Lights = 6;
+	const int Lights = 4;
+	const int BuzzerL = 5;
+	const int BuzzerR = 6;
 }
 
 namespace Input
 {
-	const int Colour = 8;
+	const int Brightness = 12;
+	const int Colour = 11;
+	const int Range = 10;
 	const int Mode = 9;
-	const int Speed = A0;
-	const int Brightness = A1;
+	const int BuzzerLevel = 8;
+	const int Pause = 3;
+	const int Speed = A2;
 }
 
 const uint32_t Colours[] = 
@@ -61,60 +66,169 @@ const uint32_t Colours[] =
 	Adafruit_NeoPixel::Color(0, 255, 255),	
 };
 
+const uint8_t Brightnesses[] = { 20, 80, 140, 255 };
+
+struct BuzzerLevel 
+{
+	uint32_t duration;
+	uint8_t strength;
+};
+
+const BuzzerLevel BuzzerLevelsL[] = 
+{
+	{ 0, 0 },
+	{ 80, 150 },
+	{ 140, 135 },
+	{ 180, 120 },
+};
+
+const BuzzerLevel BuzzerLevelsR[] = 
+{
+	{ 0, 0 },
+	{ 55, 140 },
+	{ 100, 120 },
+	{ 145, 90 },
+};
+
+const int Ranges[] = { 0, 5, 10, 15 }; // Pixels to skip at each end.
+
+const int MinPixelDuration = 12;
+const int MaxPixelDuration = 50;
+const float DefaultSpeed = 0.5f; // [0, 1]
+
 const int PixelCount = 60;
 const int ColourCount = sizeof Colours / sizeof Colours[0];
+const int BrightnessCount = sizeof Brightnesses / sizeof Brightnesses[0];
+const int BuzzerLevelsCount = sizeof BuzzerLevelsL / sizeof BuzzerLevelsL[0];
+const int RangesCount = sizeof Ranges / sizeof Ranges[0];
 
 struct _settings
 {
-	int currentColour = 0;
-	uint32_t pixelDuration = 40000;
+	int brightness = 0;
+	int colour = 0;
+	int range = 0;
+	int mode = 0;
+	int buzzerLevel = 0;
 } 
 _settings;
 
 int _currentIndex = -1;
 uint32_t _nextPixelTime = 0;
+uint32_t _buzzerOffTime = 0;
+uint32_t _nextAnalogReadTime = 0;
+bool _paused = false;
+int _pixelDuration = 100;
 
 Adafruit_NeoPixel _pixels = Adafruit_NeoPixel(PixelCount, Output::Lights, NEO_GRB + NEO_KHZ800);
+
+Button _brightnessButton(Input::Brightness);
 Button _colourButton(Input::Colour);
+Button _rangeButton(Input::Range);
 Button _modeButton(Input::Mode);
+Button _buzzerLevelButton(Input::BuzzerLevel);
+Button _pauseButton(Input::Pause);
 
 void setup() 
 {
+	Serial.begin(9600);
+
 	_pixels.begin();
 	_pixels.setBrightness(0);
 	_pixels.show();
 
-	pinMode(Input::Colour, INPUT_PULLUP);
+	pinMode(Input::BuzzerLevel, INPUT_PULLUP);
 	pinMode(Input::Mode, INPUT_PULLUP);
+	pinMode(Input::Range, INPUT_PULLUP);
+	pinMode(Input::Colour, INPUT_PULLUP);
+	pinMode(Input::Brightness, INPUT_PULLUP);
+	pinMode(Input::Pause, INPUT_PULLUP);
+	
+	pinMode(Input::Speed, INPUT);
+
+	pinMode(Output::BuzzerL, OUTPUT);
+	pinMode(Output::BuzzerR, OUTPUT);
+
+	digitalWrite(Output::BuzzerL, HIGH);
+	digitalWrite(Output::BuzzerR, HIGH);
+}
+
+int getSkipPixels()
+{
+	return Ranges[_settings.range];
+}
+
+int getRunLength()
+{
+	return PixelCount - getSkipPixels() * 2 - 1;
 }
 
 int getPixel()
 {
-	return (PixelCount - 1) - abs(_currentIndex - (PixelCount - 1));
+	const int runLength = getRunLength();
+	return getSkipPixels() + runLength - abs(_currentIndex - runLength);
 }
 
 void loop() 
 {
-	uint32_t now = micros();
-
-	if (__modeButton.Update(now))
-		_settings.currentColour = (_settings.currentColour + 1) % ColourCount;
+	const uint32_t now = millis();
+	const int currentPixel = getPixel(); // Before we change _settings.range.
 	
-	if (_modeButton.Update(now))
+	bool reset = false;
+	
+	if (_brightnessButton.Update(now))
+	{
+		_settings.brightness = (_settings.brightness + 1) % BrightnessCount;
+	}	
+	else if (_colourButton.Update(now))
+	{
+		_settings.colour = (_settings.colour + 1) % ColourCount;
+	}	
+	else if ((reset = _modeButton.Update(now)))
 	{
 	}
-
-	uint64_t durationVal = analogRead(Input::Speed);
-	uint64_t brightnessVal = analogRead(Input::Brightness);
-
-	int brightness = map((brightnessVal * brightnessVal) >> 10, 0, 1023, 3, 255);
-	_settings.pixelDuration = map(durationVal, 0, 1023, 50000, 5000);
-	
-	const uint32_t colour = Colours[_settings.currentColour];
-
-	if (now > _nextPixelTime)
+	else if ((reset = _rangeButton.Update(now)))
 	{
-		_nextPixelTime = now + _settings.pixelDuration;
+		_settings.range = (_settings.range + 1) % RangesCount;
+	}
+	else if ((reset = _buzzerLevelButton.Update(now)))
+	{
+		_settings.buzzerLevel = (_settings.buzzerLevel + 1) % BuzzerLevelsCount;
+	}
+	else if ((reset = _pauseButton.Update(now)))
+	{
+		_paused = !_paused;
+	}
+	
+	if (now >= _buzzerOffTime)
+	{
+		analogWrite(Output::BuzzerL, 255);
+		analogWrite(Output::BuzzerR, 255);
+	}
+
+	if (now >= _nextAnalogReadTime)
+	{
+		const int val = analogRead(Input::Speed);
+		float speed; // [0, 1]
+		if (val > 1000) // Remote disconnected.
+		{
+			speed = DefaultSpeed;
+			_paused = false;
+		}
+		else
+		{
+			speed = constrain(val / float(1023 - val), 0, 1);
+		}
+		
+		_pixelDuration = MinPixelDuration + int((1 - speed) * (MaxPixelDuration - MinPixelDuration));
+
+		_nextAnalogReadTime = now + 100;
+	}
+	
+	if (reset || now >= _nextPixelTime)
+	{
+		const int runLength = getRunLength();
+		
+		_nextPixelTime = now + _pixelDuration;
 		
 		if (_currentIndex < 0)
 		{
@@ -122,14 +236,30 @@ void loop()
 		}
 		else
 		{
-			_pixels.setPixelColor(getPixel(), _pixels.Color(0,0,0));
-			_pixels.setBrightness(brightness);
-			_currentIndex = (_currentIndex + 1) % (PixelCount * 2 - 2);
+			_pixels.setPixelColor(currentPixel, _pixels.Color(0,0,0));
+			_pixels.setBrightness(Brightnesses[_settings.brightness]);
+
+			if (reset)
+				_currentIndex = 0;
+			else if (!_paused)
+				_currentIndex = reset ? 0 : (_currentIndex + 1) % (runLength * 2);
 		}
-		
 	
-		_pixels.setPixelColor(getPixelIndex(), colour);
+		_pixels.setPixelColor(getPixel(), Colours[_settings.colour]);
 		_pixels.show();
-	
+
+		if (_currentIndex == 0 || _currentIndex == runLength)
+		{
+			if (!_paused || reset)
+			{
+				const BuzzerLevel& buzzerLevel = (_currentIndex ? BuzzerLevelsR : BuzzerLevelsL)[_settings.buzzerLevel];
+				if (buzzerLevel.duration)
+				{
+					analogWrite(_currentIndex ? Output::BuzzerL : Output::BuzzerR, 255); // In case it's on.
+					analogWrite(_currentIndex ? Output::BuzzerR : Output::BuzzerL, 255 - buzzerLevel.strength);
+					_buzzerOffTime = now + buzzerLevel.duration;
+				}
+			}
+		}
 	}
 }
