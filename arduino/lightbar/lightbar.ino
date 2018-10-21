@@ -51,6 +51,7 @@ namespace Input
 	const int Range = 10;
 	const int Mode = 9;
 	const int BuzzerLevel = 8;
+	const int Pause2 = 7;
 	const int Pause = 3;
 	const int Speed = A2;
 }
@@ -116,7 +117,7 @@ int _currentIndex = -1;
 uint32_t _nextPixelTime = 0;
 uint32_t _buzzerOffTime = 0;
 uint32_t _nextAnalogReadTime = 0;
-bool _paused = false;
+bool _paused = true;
 int _rawPixelDuration = 100;
 float _durationFactors[PixelCount / 2];
 
@@ -128,6 +129,7 @@ Button _rangeButton(Input::Range);
 Button _modeButton(Input::Mode);
 Button _buzzerLevelButton(Input::BuzzerLevel);
 Button _pauseButton(Input::Pause);
+Button _pauseButton2(Input::Pause2);
 
 void setup() 
 {
@@ -143,6 +145,7 @@ void setup()
 	pinMode(Input::Colour, INPUT_PULLUP);
 	pinMode(Input::Brightness, INPUT_PULLUP);
 	pinMode(Input::Pause, INPUT_PULLUP);
+	pinMode(Input::Pause2, INPUT_PULLUP);
 	
 	pinMode(Input::Speed, INPUT);
 
@@ -229,7 +232,7 @@ void loop()
 	{
 		_settings.buzzerLevel = (_settings.buzzerLevel + 1) % BuzzerLevelsCount;
 	}
-	else if ((reset = _pauseButton.Update(now)))
+	else if ((reset = _pauseButton.Update(now)) || (reset = _pauseButton2.Update(now)))
 	{
 		_paused = !_paused;
 	}
@@ -247,7 +250,6 @@ void loop()
 		if (val > 1000) // Remote disconnected.
 		{
 			speed = DefaultSpeed;
-			_paused = false;
 		}
 		else
 		{
