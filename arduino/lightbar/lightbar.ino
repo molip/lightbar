@@ -99,7 +99,7 @@ const int MinPixelDuration = 12;
 const int MaxPixelDuration = 50;
 const float DefaultSpeed = 0.5f; // [0, 1]
 
-const int PixelCount = 60;
+const int PixelCount = 58;
 const int ColourCount = sizeof Colours / sizeof Colours[0];
 const int BrightnessCount = sizeof Brightnesses / sizeof Brightnesses[0];
 const int BuzzerLevelsCount = sizeof BuzzerLevelsL / sizeof BuzzerLevelsL[0];
