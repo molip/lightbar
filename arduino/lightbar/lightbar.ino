@@ -1,5 +1,5 @@
 #include <Adafruit_NeoPixel.h>
-#include <avr/power.h>
+#include <EEPROM.h>
 
 class Button
 {
@@ -98,27 +98,23 @@ const int Ranges[] = { 0, 5, 10, 15 }; // Pixels to skip at each end.
 const int MinPixelDuration = 12;
 const int MaxPixelDuration = 50;
 const float DefaultSpeed = 0.5f; // [0, 1]
-
+const uint32_t SettingsWriteDelay = 3000;
 const int PixelCount = 58;
 const int ColourCount = sizeof Colours / sizeof Colours[0];
 const int BrightnessCount = sizeof Brightnesses / sizeof Brightnesses[0];
 const int BuzzerLevelsCount = sizeof BuzzerLevelsL / sizeof BuzzerLevelsL[0];
 const int RangesCount = sizeof Ranges / sizeof Ranges[0];
+const int ModesCount = 2;
 
-struct _settings
-{
-	int brightness = 0;
-	int colour = 0;
-	int range = 0;
-	int mode = 0;
-	int buzzerLevel = 0;
-} 
-_settings;
+enum class Settings { Brightness, Colour, Range, Mode, BuzzerLevel, _Count };
+const uint8_t SettingStateCount[] = { BrightnessCount, ColourCount, RangesCount, ModesCount, BuzzerLevelsCount };
+uint8_t _settings[(int)Settings::_Count];
 
 int _currentIndex = -1;
 uint32_t _nextPixelTime = 0;
 uint32_t _buzzerOffTime = 0;
 uint32_t _nextAnalogReadTime = 0;
+uint32_t _nextSettingsWriteTime = 0;
 bool _paused = true;
 int _rawPixelDuration = 100;
 float _durationFactors[PixelCount / 2];
@@ -132,6 +128,37 @@ Button _modeButton(Input::Mode);
 Button _buzzerLevelButton(Input::BuzzerLevel);
 Button _pauseButton(Input::Pause);
 Button _pauseButton2(Input::Pause2);
+
+uint8_t getSetting(Settings type)
+{
+	return _settings[(int)type];
+}
+
+void advanceSetting(Settings type)
+{
+	const int index = (int)type;
+	_settings[index] = (_settings[index] + 1) % SettingStateCount[index];
+}
+
+void saveSettings()
+{
+	Serial.println("Saving settings...");
+	for (int i = 0; i < (int)Settings::_Count; ++i)
+	{
+		EEPROM.update(i, _settings[i]);
+		Serial.println(_settings[i]);
+	}
+}
+
+void loadSettings()
+{
+	Serial.println("Loading settings...");
+	for (int i = 0; i < (int)Settings::_Count; ++i)
+	{
+		_settings[i] = EEPROM.read(i);
+		Serial.println(_settings[i]);
+	}
+}
 
 void setup() 
 {
@@ -157,12 +184,15 @@ void setup()
 	digitalWrite(Output::BuzzerL, HIGH);
 	digitalWrite(Output::BuzzerR, HIGH);
 
+	//saveSettings();
+	loadSettings();
+
 	updateDurationFactors();
 }
 
 int getSkipPixels()
 {
-	return Ranges[_settings.range];
+	return Ranges[getSetting(Settings::Range)];
 }
 
 int getRunLength()
@@ -178,7 +208,7 @@ int getPixel()
 
 int getPixelDuration(int raw)
 {
-	if (_settings.mode == 0)
+	if (getSetting(Settings::Mode) == 0)
 		return raw;
 	
 	const int runLength = getRunLength();
@@ -209,36 +239,53 @@ void updateDurationFactors()
 void loop() 
 {
 	const uint32_t now = millis();
-	const int currentPixel = getPixel(); // Before we change _settings.range.
+	const int currentPixel = getPixel(); // Before we change Settings::Range.
 	
 	bool reset = false;
+	bool changed = false;
 	
 	if (_brightnessButton.Update(now))
 	{
-		_settings.brightness = (_settings.brightness + 1) % BrightnessCount;
+		advanceSetting(Settings::Brightness);
+		changed = true;
 	}	
 	else if (_colourButton.Update(now))
 	{
-		_settings.colour = (_settings.colour + 1) % ColourCount;
+		advanceSetting(Settings::Colour);
+		changed = true;
 	}	
-	else if ((reset = _modeButton.Update(now)))
+	else if (_modeButton.Update(now))
 	{
-		_settings.mode = _settings.mode ? 0 : 1;
+		advanceSetting(Settings::Mode);
+		reset = changed = true;
 	}
-	else if ((reset = _rangeButton.Update(now)))
+	else if (_rangeButton.Update(now))
 	{
-		_settings.range = (_settings.range + 1) % RangesCount;
+		advanceSetting(Settings::Range);
 		updateDurationFactors();
+		reset = changed = true;
 	}
-	else if ((reset = _buzzerLevelButton.Update(now)))
+	else if (_buzzerLevelButton.Update(now))
 	{
-		_settings.buzzerLevel = (_settings.buzzerLevel + 1) % BuzzerLevelsCount;
+		advanceSetting(Settings::BuzzerLevel);
+		reset = changed = true;
 	}
-	else if ((reset = _pauseButton.Update(now)) || (reset = _pauseButton2.Update(now)))
+	else if (_pauseButton.Update(now) || _pauseButton2.Update(now))
 	{
 		_paused = !_paused;
+		reset = true;
 	}
 	
+	if (changed)
+	{
+		_nextSettingsWriteTime = now + SettingsWriteDelay;
+	}
+	else if (_nextSettingsWriteTime && now >= _nextSettingsWriteTime)
+	{
+		saveSettings();
+		_nextSettingsWriteTime = 0;
+	}
+
 	if (now >= _buzzerOffTime)
 	{
 		analogWrite(Output::BuzzerL, 255);
@@ -262,7 +309,7 @@ void loop()
 
 		_nextAnalogReadTime = now + 100;
 	}
-	
+
 	if (reset || now >= _nextPixelTime)
 	{
 		const int runLength = getRunLength();
@@ -276,7 +323,7 @@ void loop()
 		else
 		{
 			_pixels.setPixelColor(currentPixel, _pixels.Color(0,0,0));
-			_pixels.setBrightness(Brightnesses[_settings.brightness]);
+			_pixels.setBrightness(Brightnesses[getSetting(Settings::Brightness)]);
 
 			if (reset)
 				_currentIndex = 0;
@@ -284,14 +331,14 @@ void loop()
 				_currentIndex = reset ? 0 : (_currentIndex + 1) % (runLength * 2);
 		}
 	
-		_pixels.setPixelColor(getPixel(), Colours[_settings.colour]);
+		_pixels.setPixelColor(getPixel(), Colours[getSetting(Settings::Colour)]);
 		_pixels.show();
 
 		if (_currentIndex == 0 || _currentIndex == runLength)
 		{
 			if (!_paused || reset)
 			{
-				const BuzzerLevel& buzzerLevel = (_currentIndex ? BuzzerLevelsR : BuzzerLevelsL)[_settings.buzzerLevel];
+				const BuzzerLevel& buzzerLevel = (_currentIndex ? BuzzerLevelsR : BuzzerLevelsL)[getSetting(Settings::BuzzerLevel)];
 				if (buzzerLevel.duration)
 				{
 					analogWrite(_currentIndex ? Output::BuzzerL : Output::BuzzerR, 255); // In case it's on.
