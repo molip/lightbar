@@ -104,7 +104,7 @@ const int ColourCount = sizeof Colours / sizeof Colours[0];
 const int BrightnessCount = sizeof Brightnesses / sizeof Brightnesses[0];
 const int BuzzerLevelsCount = sizeof BuzzerLevelsL / sizeof BuzzerLevelsL[0];
 const int RangesCount = sizeof Ranges / sizeof Ranges[0];
-const int ModesCount = 2;
+const int ModesCount = 3;
 
 enum class Settings { Brightness, Colour, Range, Mode, BuzzerLevel, _Count };
 const uint8_t SettingStateCount[] = { BrightnessCount, ColourCount, RangesCount, ModesCount, BuzzerLevelsCount };
@@ -203,12 +203,16 @@ int getRunLength()
 int getPixel()
 {
 	const int runLength = getRunLength();
+
+	if (getSetting(Settings::Mode) == 2)
+		return getSkipPixels() + (_currentIndex >= runLength ? runLength : 0);
+		
 	return getSkipPixels() + runLength - abs(_currentIndex - runLength);
 }
 
 int getPixelDuration(int raw)
 {
-	if (getSetting(Settings::Mode) == 0)
+	if (getSetting(Settings::Mode) != 1)
 		return raw;
 	
 	const int runLength = getRunLength();
