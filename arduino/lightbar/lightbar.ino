@@ -58,15 +58,14 @@ namespace Input
 
 const uint32_t Colours[] = 
 {
-	Adafruit_NeoPixel::Color(255, 255, 255), 	// White	
+	Adafruit_NeoPixel::Color(200, 200, 200), 	// White	
 	Adafruit_NeoPixel::Color(255, 50, 0),		// Red
+	Adafruit_NeoPixel::Color(200, 200, 0),		// Yellow
 	Adafruit_NeoPixel::Color(255, 0, 140),		// Pink
-	Adafruit_NeoPixel::Color(140, 0, 255),		// Purple
-	Adafruit_NeoPixel::Color(0, 0, 255),		// Blue
-	Adafruit_NeoPixel::Color(0, 130, 255),		// L blue
 	Adafruit_NeoPixel::Color(0, 255, 0),		// Green
-	Adafruit_NeoPixel::Color(233, 255, 0),		// Yellow
 	Adafruit_NeoPixel::Color(255, 128, 0),		// Orange
+	Adafruit_NeoPixel::Color(120, 0, 200),		// Purple
+	Adafruit_NeoPixel::Color(0, 80, 255),		// Blue
 };
 
 const uint8_t Brightnesses[] = { 20, 80, 140, 255 };
